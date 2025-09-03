@@ -1,0 +1,299 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <cctype>
+#include <thread>
+#include <chrono>
+#include <limits>
+
+using namespace std;
+
+struct BankAccount
+{
+    int accountNumber;
+    string fullName;
+    double balance;
+    double balanceDZD;
+};
+
+//  -----------------  all functions
+void showLoading();
+void verifyAdminPassword();
+void updateBalanceDZD(BankAccount &acc);
+
+void showMenu();
+void handleOption();
+void createAccount();
+void displayAccounts();
+void depositMoney();
+void withdrawMoney();
+
+//  -----------------  global variable
+vector<BankAccount> accounts;
+double adminCollected = 0;
+
+//  -----------------  calculateTax
+double calculateTax(double amount)
+{
+    if (amount <= 500)
+        return (amount * 10) / 100;
+    else if (amount > 500 && amount < 2000)
+        return (amount * 5) / 100;
+    else
+        return (amount * 2.5) / 100;
+}
+
+//  -----------------  updateBalanceDZD
+void updateBalanceDZD(BankAccount &acc)
+{
+    acc.balanceDZD = acc.balance * 260;
+}
+//  -----------------  isEmptyAccounts
+bool isEmptyAccounts()
+{
+    if (accounts.empty())
+    {
+        cout << "\033[31mNo accounts available.\033[0m" << endl;
+        return true;
+    }
+    return false;
+}
+//  -----------------  showLoading
+void showLoading()
+{
+    string wait = "wait ...";
+    for (int i = 0; i < wait.length(); i++)
+    {
+        this_thread::sleep_for(chrono::milliseconds(100));
+        cout << wait[i];
+    }
+    this_thread::sleep_for(chrono::seconds(1));
+}
+void verifyAdminPassword()
+{
+    int adminPass = 2025;
+    int userInPass;
+    int error = 0;
+    cout << "\n\033[032m-----# password\033[0m" << endl;
+    cout << "# Admin password : ";
+    cin >> userInPass;
+
+    while (userInPass != adminPass)
+    {
+        showLoading();
+        error++;
+        cout << "\n\033[031mInvalid\033[0m" << endl;
+        cout << "# Enter again the Admin password : ";
+        cin >> userInPass;
+        if (error == 3)
+        {
+            cout << "Sorry, you cannot enter!" << endl;
+            exit(0);
+        }
+    }
+}
+
+void showMenu()
+{
+    cout << "\n\033[033m-----# Menu # -----\033[0m" << endl;
+    cout << "1 - Create a new account" << endl;
+    cout << "2 - Display all accounts" << endl;
+    cout << "3 - Deposit money" << endl;
+    cout << "4 - Withdraw money" << endl;
+    cout << "5 - Find account by number" << endl;
+    cout << "6 - Show admin collected money" << endl;
+    cout << "\033[031m0 - EXIT\033[0m" << endl;
+}
+
+//  -----------------   handleOption
+void handleOption()
+{
+    cout << "\nI CHOOSE OPTION : ";
+    int userInOption;
+    cin >> userInOption;
+    while (userInOption < 0 || userInOption > 6)
+    {
+        cout << "\033[031mYour input invalid! Try again (0 - 6) :  \033[0m";
+        cin >> userInOption;
+    }
+    switch (userInOption)
+    {
+    case 1:
+        createAccount();
+        break;
+    case 2:
+        displayAccounts();
+        break;
+    case 3:
+        depositMoney();
+        break;
+    case 4:
+        withdrawMoney();
+        break;
+    case 5:
+        // TODO: Find account by number
+        break;
+    case 6:
+        cout << "\n\033[033mAdmin collected money: \033[0m" << adminCollected << " $" << endl;
+        break;
+    case 0:
+        exit(0);
+    }
+}
+//  -----------------  createAccount
+void createAccount()
+{
+    cout << "\n\033[033m-----# SECTION : Create a new account\033[0m" << endl;
+    int add_accountNumber;
+    string add_fullName;
+    double add_balance;
+
+    cout << "ACCOUNT NUMBER : ";
+    cin >> add_accountNumber;
+
+    while (true)
+    {
+        auto findID = find_if(accounts.begin(), accounts.end(), [add_accountNumber](const BankAccount &b)
+                              { return b.accountNumber == add_accountNumber; });
+        if (findID == accounts.end())
+            break;
+        showLoading();
+        cout << "\n\033[031mThis ACCOUNT NUMBER already exists. Enter a different ID: \033[0m";
+        cin >> add_accountNumber;
+    }
+
+    cout << "FULL NAME : ";
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    getline(cin, add_fullName);
+
+    cout << "BALANCE IN DOLLARS = ";
+    cin >> add_balance;
+    while (add_balance < 0)
+    {
+        add_balance *= (-1);
+    }
+    BankAccount newAccount = {add_accountNumber, add_fullName, add_balance, 0};
+    updateBalanceDZD(newAccount);
+    accounts.push_back(newAccount);
+    showLoading();
+    cout << "\n\033[32m✅ Added successfully!\033[0m\n";
+}
+
+//  -----------------  displayAccounts
+void displayAccounts()
+{
+    cout << "\n\033[033m-----# SECTION : Display all accounts\033[0m" << endl;
+    if (isEmptyAccounts())
+        return;
+
+    verifyAdminPassword();
+    for (const auto &s : accounts)
+    {
+        this_thread::sleep_for(chrono::milliseconds(150));
+        cout << "\nACCOUNT NUMBER : " << s.accountNumber << endl;
+        cout << "FULL NAME : " << s.fullName << endl;
+        cout << "BALANCE : " << s.balance << " $ = " << s.balanceDZD << " DZD" << endl;
+        cout << "\033[31m====\033[0m" << endl;
+    }
+}
+//  -----------------  depositMoney
+void depositMoney()
+{
+    cout << "\n\033[033m-----# SECTION : Deposit money\033[0m" << endl;
+    if (isEmptyAccounts())
+        return;
+
+    cout << "ENTER THE ACCOUNT NUMBER : ";
+    int userInNaccount;
+    cin >> userInNaccount;
+    auto findID = find_if(accounts.begin(), accounts.end(), [userInNaccount](const BankAccount &b)
+                          { return b.accountNumber == userInNaccount; });
+    if (findID != accounts.end())
+    {
+        cout << "This account exists. " << endl;
+        cout << "\033[033mThe information : \033[0m" << endl;
+        cout << "\tName : " << findID->fullName << endl;
+        cout << "\tBalance : " << findID->balance << " $" << endl;
+        cout << "\tBalance : " << findID->balanceDZD << " DZD" << endl;
+        cout << "\nDeposit money in dollar = ";
+        int userDeposit;
+        cin >> userDeposit;
+        while (userDeposit < 0)
+        {
+            userDeposit *= (-1);
+        }
+        findID->balance += userDeposit;
+        updateBalanceDZD(*findID);
+        showLoading();
+        cout << "\n\033[32m✅ Deposit successful!\033[0m\n";
+        cout << "The new balance = " << findID->balance << " $ || = " << findID->balanceDZD << " DZD" << endl;
+    }
+    else
+    {
+        cout << "\033[31mNot found!\033[0m" << endl;
+    }
+}
+
+//  -----------------  withdrawMoney
+void withdrawMoney()
+{
+    int userWithdraw;
+    double tax;
+    cout << "\n\033[033m-----# SECTION : Withdraw money\033[0m" << endl;
+    if (isEmptyAccounts())
+        return;
+
+    cout << "ENTER THE ACCOUNT NUMBER : ";
+    int userInNaccount;
+    cin >> userInNaccount;
+    auto findID = find_if(accounts.begin(), accounts.end(), [userInNaccount](const BankAccount &b)
+                          { return b.accountNumber == userInNaccount; });
+    if (findID != accounts.end())
+    {
+        cout << "This account exists. " << endl;
+        cout << "\033[033mThe information : \033[0m" << endl;
+        cout << "\tName : " << findID->fullName << endl;
+        cout << "\tBalance : " << findID->balance << " $" << endl;
+        cout << "\tBalance : " << findID->balanceDZD << " DZD" << endl;
+        cout << "\nWithdraw money = ";
+        cin >> userWithdraw;
+
+        while (userWithdraw < 0)
+        {
+            cout << "\033[31m❌ Invalid amount! Enter positive value:\033[0m ";
+            cin >> userWithdraw;
+        }
+        tax = calculateTax(userWithdraw);
+
+        while ((userWithdraw + tax) > findID->balance)
+        {
+            cout << "Tax : " << tax << " $" << endl;
+            cout << "\033[31mNot enough balance! Try again: \033[0m";
+            cin >> userWithdraw;
+        }
+
+        adminCollected += tax;
+        findID->balance -= (userWithdraw + tax);
+        updateBalanceDZD(*findID);
+        showLoading();
+        cout << "\n\033[32m✅ Withdraw successful!\033[0m\n";
+        cout << "Amount withdrawn: " << userWithdraw << " $" << endl;
+        cout << "Tax : " << tax << " $" << endl;
+        cout << "Remaining balance: " << findID->balance << " $ = "
+             << findID->balanceDZD << " DZD" << endl;
+    }
+    else
+    {
+        cout << "\033[31mNot found!\033[0m" << endl;
+    }
+}
+//  -----------------  main
+int main()
+{
+    while (true)
+    {
+        showMenu();
+        handleOption();
+    }
+}
